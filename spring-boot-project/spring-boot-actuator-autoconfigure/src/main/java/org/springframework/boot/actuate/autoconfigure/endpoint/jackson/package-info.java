@@ -15,6 +15,6 @@
  */
 
 /**
- * Auto-configuration for Prometheus Exemplars with Micrometer Tracing.
+ * Actuator Jackson auto-configuration.
  */
-package org.springframework.boot.actuate.autoconfigure.tracing.exemplars;
+package org.springframework.boot.actuate.autoconfigure.endpoint.jackson;

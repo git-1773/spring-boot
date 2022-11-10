@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.springframework.boot.actuate.autoconfigure.tracing.exemplars;
+package org.springframework.boot.actuate.autoconfigure.tracing.prometheus;
 
 import io.micrometer.observation.Observation;
 import io.micrometer.observation.ObservationRegistry;
@@ -38,18 +38,19 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
 /**
- * Tests for {@link ExemplarsAutoConfiguration}.
+ * Tests for {@link PrometheusExemplarsAutoConfiguration}.
  *
  * * @author Jonatan Ivanov
  */
-class ExemplarsAutoConfigurationTests {
+class PrometheusExemplarsAutoConfigurationTests {
 
 	private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
 			.withPropertyValues("management.tracing.sampling.probability=1.0",
 					"management.metrics.distribution.percentiles-histogram.all=true")
-			.with(MetricsRun.limitedTo(PrometheusMetricsExportAutoConfiguration.class)).withConfiguration(
-					AutoConfigurations.of(ExemplarsAutoConfiguration.class, ObservationAutoConfiguration.class,
-							BraveAutoConfiguration.class, MicrometerTracingAutoConfiguration.class));
+			.with(MetricsRun.limitedTo(PrometheusMetricsExportAutoConfiguration.class))
+			.withConfiguration(AutoConfigurations.of(PrometheusExemplarsAutoConfiguration.class,
+					ObservationAutoConfiguration.class, BraveAutoConfiguration.class,
+					MicrometerTracingAutoConfiguration.class));
 
 	@Test
 	void shouldNotSupplyBeansIfTracingIsDisabled() {
@@ -82,7 +83,6 @@ class ExemplarsAutoConfigurationTests {
 			assertThat(context).hasSingleBean(SpanContextSupplier.class);
 			ObservationRegistry observationRegistry = context.getBean(ObservationRegistry.class);
 			Observation.start("test.observation", observationRegistry).stop();
-
 			PrometheusMeterRegistry prometheusMeterRegistry = context.getBean(PrometheusMeterRegistry.class);
 			String openMetricsOutput = prometheusMeterRegistry.scrape(TextFormat.CONTENT_TYPE_OPENMETRICS_100);
 			assertThat(openMetricsOutput).contains("test_observation_seconds_bucket").containsOnlyOnce("trace_id=")
