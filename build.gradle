@@ -25,6 +25,7 @@ allprojects {
 	group "org.springframework.boot"
 
 	repositories {
+		MavenLocal()
 		mavenCentral()
 		if (version.contains('-')) {
 			maven { url "https://repo.spring.io/milestone" }
