@@ -1284,7 +1284,7 @@ bom {
 			]
 		}
 	}
-	library("Micrometer", "1.9.5") {
+	library("Micrometer", "1.9.6-SNAPSHOT") {
 		group("io.micrometer") {
 			modules = [
 				"micrometer-registry-stackdriver" {
@@ -1442,7 +1442,7 @@ bom {
 			]
 		}
 	}
-	library("Reactor Bom", "2020.0.24") {
+	library("Reactor Bom", "2020.0.25-SNAPSHOT") {
 		group("io.projectreactor") {
 			imports = [
 				"reactor-bom"
@@ -1679,7 +1679,7 @@ bom {
 			]
 		}
 	}
-	library("Spring Batch", "4.3.7") {
+	library("Spring Batch", "4.3.8-SNAPSHOT") {
 		prohibit("[5.0.0-M1,)") {
 			because "it uses Spring Framework 6"
 		}
@@ -1692,7 +1692,7 @@ bom {
 			]
 		}
 	}
-	library("Spring Data Bom", "2021.2.5") {
+	library("Spring Data Bom", "2021.2.6-SNAPSHOT") {
 		prohibit("[2022.0.0-M1,)") {
 			because "it uses Spring Framework 6"
 		}
@@ -1702,7 +1702,7 @@ bom {
 			]
 		}
 	}
-	library("Spring Framework", "5.3.23") {
+	library("Spring Framework", "5.3.24-SNAPSHOT") {
 		prohibit("[6.0.0-M1,)") {
 			because "we upgrade in Spring Boot 3.x"
 		}
@@ -1712,7 +1712,7 @@ bom {
 			]
 		}
 	}
-	library("Spring GraphQL", "1.0.2") {
+	library("Spring GraphQL", "1.0.3-SNAPSHOT") {
 		group("org.springframework.graphql") {
 			modules = [
 					"spring-graphql",
@@ -1740,7 +1740,7 @@ bom {
 			]
 		}
 	}
-	library("Spring Kafka", "2.8.10") {
+	library("Spring Kafka", "2.8.11-SNAPSHOT") {
 		prohibit("[3.0.0-M1,)") {
 			because "it uses Spring Framework 6"
 		}
@@ -1765,7 +1765,7 @@ bom {
 			]
 		}
 	}
-	library("Spring RESTDocs", "2.0.6.RELEASE") {
+	library("Spring RESTDocs", "2.0.7.BUILD-SNAPSHOT") {
 		prohibit("[3.0.0-M1,)") {
 			because "it uses Spring Framework 6"
 		}
