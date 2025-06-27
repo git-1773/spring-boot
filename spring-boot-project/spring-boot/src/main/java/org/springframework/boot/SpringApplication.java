@@ -179,6 +179,9 @@ public class SpringApplication {
 
 	static final SpringApplicationShutdownHook shutdownHook = new SpringApplicationShutdownHook();
 
+	/**
+	 * 主要的应用入口类（@SpringBootApplication 标注的类
+	 */
 	private Set<Class<?>> primarySources;
 
 	private Set<String> sources = new LinkedHashSet<>();
@@ -207,12 +210,29 @@ public class SpringApplication {
 
 	private boolean registerShutdownHook = true;
 
+	/**
+	 * 初始化器
+	 */
 	private List<ApplicationContextInitializer<?>> initializers;
 
 	private List<ApplicationListener<?>> listeners;
 
 	private Map<String, Object> defaultProperties;
 
+	/**
+	 * 应用上下文创建之前的引导操作
+	 * 应用示例：
+	 * 1、远程配置中心,应用启动前先注册远程配置源（如 Nacos、Apollo、Consul）
+	 * 2、提前注册加密配置解密器,在 Environment 构建前，注册解密逻辑（如阿里云 KMS）
+	 * 3、自定义 EnvironmentPostProcessor 的前置支持组件,初始化一些提前参与环境构建的对象
+	 * 4、日志/指标系统初始化,提前绑定系统参数或跟踪信息
+	 *
+	 * 总结:
+	 * | 核心作用 | 在 `Environment` 准备之前注册必要组件供后续阶段使用   |
+	 * | 常用场景 | 配置中心、远程密钥服务、日志预设、环境装饰器                    |
+	 * | 典型用法 | 配合 `EnvironmentPostProcessor` 使用，提升远程配置功能 |
+	 * | 注册方式 | 通过 `spring.factories` 自动注册，也可以编程式添加       |
+	 */
 	private List<BootstrapRegistryInitializer> bootstrapRegistryInitializers;
 
 	private Set<String> additionalProfiles = Collections.emptySet();
@@ -257,9 +277,15 @@ public class SpringApplication {
 	 */
 	@SuppressWarnings({ "unchecked", "rawtypes" })
 	public SpringApplication(ResourceLoader resourceLoader, Class<?>... primarySources) {
+		// 设置资源加载器（通常用于加载 classpath、文件系统资源等）
+		// 如果传入的 resourceLoader == null，Spring Boot 会在内部使用默认的 DefaultResourceLoader
+		// 资源扫描、加载 banner.txt、application.yml、配置文件等
 		this.resourceLoader = resourceLoader;
 		Assert.notNull(primarySources, "PrimarySources must not be null");
+		// 接收启动主类列表, 并保证顺序
 		this.primarySources = new LinkedHashSet<>(Arrays.asList(primarySources));
+		// 自动识别当前应用类型 @link WebApplicationType
+		// NONE（非 Web）;SERVLET（传统 Spring MVC）;REACTIVE（Spring WebFlux）;
 		this.webApplicationType = WebApplicationType.deduceFromClasspath();
 		this.bootstrapRegistryInitializers = new ArrayList<>(
 				getSpringFactoriesInstances(BootstrapRegistryInitializer.class));
@@ -288,18 +314,39 @@ public class SpringApplication {
 	 * {@link ApplicationContext}.
 	 * @param args the application arguments (usually passed from a Java main method)
 	 * @return a running {@link ApplicationContext}
+	 *
+	 * SpringApplication.run(args)
+	 * │
+	 * ├── ① 创建 BootstrapContext（可选）
+	 * ├── ① 创建 BootstrapContext（可选）
+	 * ├── ② 获取 SpringApplicationRunListeners，并发布 starting 事件
+	 * ├── ③ 准备 Environment（应用配置加载阶段）
+	 * ├── ④ 创建并打印 Banner
+	 * ├── ⑤ 创建 ApplicationContext（决定 Web 类型）
+	 * ├── ⑥ 准备 ApplicationContext
+	 * ├── ⑦ 刷新 ApplicationContext（核心 Bean 初始化）
+	 * ├── ⑧ 发布 started 事件
+	 * ├── ⑨ 调用 ApplicationRunner / CommandLineRunner
+	 * ├── ⑩ 发布 ready 事件
+	 * └── ✅ 启动完成，返回上下文
 	 */
 	public ConfigurableApplicationContext run(String... args) {
 		long startTime = System.nanoTime();
+		// 创建应用启动上下文对象
 		DefaultBootstrapContext bootstrapContext = createBootstrapContext();
 		ConfigurableApplicationContext context = null;
 		configureHeadlessProperty();
+		// Step 1: 获取 SpringApplicationRunListeners
 		SpringApplicationRunListeners listeners = getRunListeners(args);
+		// 广播应用启动事件
 		listeners.starting(bootstrapContext, this.mainApplicationClass);
 		try {
+			// 1. 准备启动参数（包括 args 转换成 ApplicationArguments）
 			ApplicationArguments applicationArguments = new DefaultApplicationArguments(args);
+			// 2. 创建并准备环境（Environment），比如加载 application.properties 或 yaml 配置
 			ConfigurableEnvironment environment = prepareEnvironment(listeners, bootstrapContext, applicationArguments);
 			configureIgnoreBeanInfo(environment);
+			// 3. 打印 Banner（启动横幅）
 			Banner printedBanner = printBanner(environment);
 			context = createApplicationContext();
 			context.setApplicationStartup(this.applicationStartup);
@@ -337,6 +384,7 @@ public class SpringApplication {
 	private ConfigurableEnvironment prepareEnvironment(SpringApplicationRunListeners listeners,
 			DefaultBootstrapContext bootstrapContext, ApplicationArguments applicationArguments) {
 		// Create and configure the environment
+		// 创建一个可配置的应用运行环境
 		ConfigurableEnvironment environment = getOrCreateEnvironment();
 		configureEnvironment(environment, applicationArguments.getSourceArgs());
 		ConfigurationPropertySources.attach(environment);
@@ -427,8 +475,11 @@ public class SpringApplication {
 	private <T> Collection<T> getSpringFactoriesInstances(Class<T> type, Class<?>[] parameterTypes, Object... args) {
 		ClassLoader classLoader = getClassLoader();
 		// Use names and ensure unique to protect against duplicates
+		// 从 META-INF/spring.factories 中加载接口 <SpringApplicationRunListener> 的实现类名
 		Set<String> names = new LinkedHashSet<>(SpringFactoriesLoader.loadFactoryNames(type, classLoader));
+		// 将上一步返回的类名 反射实例化为对象
 		List<T> instances = createSpringFactoriesInstances(type, parameterTypes, classLoader, args, names);
+		// 根据 @Order 注解或 Ordered 接口，对实例集合进行排序
 		AnnotationAwareOrderComparator.sort(instances);
 		return instances;
 	}
@@ -439,9 +490,16 @@ public class SpringApplication {
 		List<T> instances = new ArrayList<>(names.size());
 		for (String name : names) {
 			try {
+				// 使用反射从类名（字符串）加载对应的类
+				// 这里使用的是 Spring 的 ClassUtils.forName(...)，比 JDK 的 Class.forName(...) 更安全可靠（支持内部类、数组、原始类型等）
 				Class<?> instanceClass = ClassUtils.forName(name, classLoader);
+				// 断言 instanceClass 是 type 的子类或实现类，否则抛异常
 				Assert.isAssignable(type, instanceClass);
+				// 查找符合参数类型的构造方法（通常是无参构造）
 				Constructor<?> constructor = instanceClass.getDeclaredConstructor(parameterTypes);
+				// 用反射调用构造函数实例化对象
+				// BeanUtils.instantiateClass(...) 是 Spring 提供的封装工具，封装了反射异常。
+				// 支持私有构造器调用、异常转换、兼容多参数构造函数
 				T instance = (T) BeanUtils.instantiateClass(constructor, args);
 				instances.add(instance);
 			}
@@ -456,6 +514,35 @@ public class SpringApplication {
 		if (this.environment != null) {
 			return this.environment;
 		}
+		// 根据应用类型创建可配置环境对象, 这里主要检查 spring.factory 文件中是否指定 ApplicationContextFactory
+		// 实现类来创建 ConfigurableEnvironment,未指定则返回 null,
+
+		// ********** 以下 3 行 代码需着重研读 ***********
+		// 乍一看, this.applicationContextFactory.createEnvironment(this.webApplicationType) 返回 null,
+		// 且 this.applicationContextFactory != ApplicationContextFactory.DEFAULT 条件永远不成立, if 逻辑永远不会执行到
+		// 后经过多次研读, 发现除了默认的 loadSpringFactory 扫描配置的自定义实现外, springApplication 对象预留了 setApplicationContextFactory 方法
+		// 以支持设置自定义 applicationContextFactory 实现
+		// if 逻辑看似无用, 其实 很有深意
+		// 意义：
+		// 在自定义实现类中未实现 createEnvironment 时, 优先考虑 接口中的 createEnvironment 默认实现,
+		// 		虽然当前版本中 默认返回 null, 但后续设置默认实现时, 就避免出现默认实现无法生效的问题, 所以这里在
+		// 		用户自定义实现时 再用 if 检查一次, 用户没有自定义 创建 ConfigurableEnvironment 时, 优先使用 接口默认实现来创建
+		//	    最终 用户自定义 没有创建 ConfigurableEnvironment 且 默认接口实现 也没创建 ConfigurableEnvironment 时才会 new ApplicationEnvironment()
+		// 		<<<极大提升代码健壮性及扩展性>>> 规避掉了开发者提供的自定义实现残缺不全或者提供的代码有漏洞的问题,
+		// 		比如实现了 createEnvironment 却返回个 null, 也应该优先考虑接口默认实现, 再去创建 ConfigurableEnvironment 做兜底, 而不是直接覆盖掉默认实现(即使当前默认实现是个空实现)
+		// 总结
+		// 虽然当前版本中 DEFAULT.createEnvironment() 返回 null，但此处 if 判断具有重要意义：
+		//
+		// 目的：在用户自定义 ApplicationContextFactory 时，若未实现或错误实现 createEnvironment()，则优先尝试接口的默认实现，作为兜底。
+		//
+		// 价值：
+		// 1. 保留接口默认实现的优先级，不被用户实现直接覆盖，提升健壮性；
+		// 2. 避免自定义实现残缺（如 createEnvironment() 返回 null）导致异常；
+		// 3. 为未来默认实现中添加有效逻辑（如按 WebApplicationType 返回默认 Environment）预留扩展入口；
+		// 4. 语义清晰，体现“自定义优先，默认兜底，最终 fallback”机制；
+		//
+		// 总体体现 Spring Boot 的设计哲学：**容错 + 可扩展 + 语义清晰**
+
 		ConfigurableEnvironment environment = this.applicationContextFactory.createEnvironment(this.webApplicationType);
 		if (environment == null && this.applicationContextFactory != ApplicationContextFactory.DEFAULT) {
 			environment = ApplicationContextFactory.DEFAULT.createEnvironment(this.webApplicationType);
@@ -478,6 +565,11 @@ public class SpringApplication {
 		if (this.addConversionService) {
 			environment.setConversionService(new ApplicationConversionService());
 		}
+//		向 Environment 中注入各种 PropertySource 属性源，比如：
+//		System.getProperties() → systemProperties
+//		System.getenv() → systemEnvironment
+//		命令行参数 → commandLineArgs
+//		默认配置文件（如 application.properties）会在后续阶段添加
 		configurePropertySources(environment, args);
 		configureProfiles(environment, args);
 	}
@@ -1298,6 +1390,7 @@ public class SpringApplication {
 	 * @param primarySources the primary sources to load
 	 * @param args the application arguments (usually passed from a Java main method)
 	 * @return the running {@link ApplicationContext}
+	 * 设置启动类数组, 创建 SpringApplication 对象并根据启动参数启动应用
 	 */
 	public static ConfigurableApplicationContext run(Class<?>[] primarySources, String[] args) {
 		return new SpringApplication(primarySources).run(args);
