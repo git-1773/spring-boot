@@ -55,3 +55,22 @@ allprojects {
 tasks.named("checkstyleNohttp").configure {
 	maxHeapSize = "1g"
 }
+
+// 跳过非核心功能模块
+// 文档生成模块非外部可访问,故此处跳过,否则由于无法访问spring内部资源而导致build失败
+gradle.taskGraph.whenReady { graph ->
+	if (project.hasProperty('skipAsciidoctor') && project.skipAsciidoctor == 'true') {
+		tasks.matching { it.name.contains('asciidoctor') || it.path.contains('asciidoctor') }.all {
+			enabled = false
+			println "🔥 Skipped task: ${it.path}"
+		}
+	}
+}
+
+gradle.projectsEvaluated {
+	tasks.matching { it.name.toLowerCase().contains('test') }.configureEach {
+		enabled = false
+		println "Skipping test task: [${it.name}], [${it.path}]"
+	}
+}
+

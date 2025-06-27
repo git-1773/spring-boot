@@ -1,6 +1,6 @@
 plugins {
     id "java-library"
-	id "org.asciidoctor.jvm.convert"
+//	id "org.asciidoctor.jvm.convert"
 	id "org.springframework.boot.auto-configuration"
 	id "org.springframework.boot.conventions"
 	id "org.springframework.boot.deployed"
@@ -17,15 +17,15 @@ repositories {
 	maven {
 		url "https://repo.spring.io/release"
 		mavenContent {
-			includeGroup "io.spring.asciidoctor"
-			includeGroup "io.spring.asciidoctor.backends"
+//			includeGroup "io.spring.asciidoctor"
+//			includeGroup "io.spring.asciidoctor.backends"
 		}
 	}
 }
 
 dependencies {
-	asciidoctorExtensions("org.springframework.restdocs:spring-restdocs-asciidoctor")
-	asciidoctorExtensions("io.spring.asciidoctor:spring-asciidoctor-extensions-section-ids")
+//	asciidoctorExtensions("org.springframework.restdocs:spring-restdocs-asciidoctor")
+//	asciidoctorExtensions("io.spring.asciidoctor:spring-asciidoctor-extensions-section-ids")
 
 	api(project(":spring-boot-project:spring-boot-actuator"))
 
@@ -212,40 +212,40 @@ task dependencyVersions(type: org.springframework.boot.build.constraints.Extract
 	enforcedPlatform(":spring-boot-project:spring-boot-dependencies")
 }
 
-tasks.withType(org.asciidoctor.gradle.jvm.AbstractAsciidoctorTask) {
-	dependsOn dependencyVersions
-	doFirst {
-		def versionConstraints = dependencyVersions.versionConstraints
-		def integrationVersion = versionConstraints["org.springframework.integration:spring-integration-core"]
-		def integrationDocs = String.format("https://docs.spring.io/spring-integration/docs/%s/reference/html/", integrationVersion)
-		attributes "spring-integration-docs": integrationDocs
-	}
-	dependsOn test
-	inputs.dir("${buildDir}/generated-snippets").withPathSensitivity(PathSensitivity.RELATIVE).withPropertyName("generatedSnippets")
-}
+//tasks.withType(org.asciidoctor.gradle.jvm.AbstractAsciidoctorTask) {
+//	dependsOn dependencyVersions
+//	doFirst {
+//		def versionConstraints = dependencyVersions.versionConstraints
+//		def integrationVersion = versionConstraints["org.springframework.integration:spring-integration-core"]
+//		def integrationDocs = String.format("https://docs.spring.io/spring-integration/docs/%s/reference/html/", integrationVersion)
+//		attributes "spring-integration-docs": integrationDocs
+//	}
+//	dependsOn test
+//	inputs.dir("${buildDir}/generated-snippets").withPathSensitivity(PathSensitivity.RELATIVE).withPropertyName("generatedSnippets")
+//}
 
-asciidoctor {
-	sources {
-		include "index.adoc"
-	}
-}
+//asciidoctor {
+//	sources {
+//		include "index.adoc"
+//	}
+//}
 
-task asciidoctorPdf(type: org.asciidoctor.gradle.jvm.AsciidoctorTask) {
-	sources {
-		include "index.adoc"
-	}
-}
+//task asciidoctorPdf(type: org.asciidoctor.gradle.jvm.AsciidoctorTask) {
+//	sources {
+//		include "index.adoc"
+//	}
+//}
 
 task zip(type: Zip) {
-	dependsOn asciidoctor, asciidoctorPdf
+//	dependsOn asciidoctor, asciidoctorPdf
 	duplicatesStrategy "fail"
-	from(asciidoctorPdf.outputDir) {
-		into "pdf"
-		rename { "spring-boot-actuator-web-api.pdf" }
-	}
-	from(asciidoctor.outputDir) {
-		into "htmlsingle"
-	}
+//	from(asciidoctorPdf.outputDir) {
+//		into "pdf"
+//		rename { "spring-boot-actuator-web-api.pdf" }
+//	}
+//	from(asciidoctor.outputDir) {
+//		into "htmlsingle"
+//	}
 }
 
 artifacts {

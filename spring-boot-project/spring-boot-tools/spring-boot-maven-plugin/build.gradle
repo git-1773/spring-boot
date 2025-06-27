@@ -153,3 +153,10 @@ prepareMavenBinaries {
 artifacts {
 	"documentation" zip
 }
+
+if (project.hasProperty('skipAsciidoctor') && project.skipAsciidoctor == 'true') {
+	tasks.matching { it.name.toLowerCase().contains('asciidoctor') }.all {
+		enabled = false
+		println "🔥 [maven-plugin] Skipping task: [${it.name}] [${it.path}]"
+	}
+}

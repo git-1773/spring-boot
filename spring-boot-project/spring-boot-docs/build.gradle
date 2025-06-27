@@ -1,9 +1,28 @@
 plugins {
 	id "java"
-	id "org.asciidoctor.jvm.convert"
+//	id "org.asciidoctor.jvm.convert"
 	id "org.springframework.boot.conventions"
 	id "org.springframework.boot.deployed"
 	id 'org.jetbrains.kotlin.jvm'
+}
+
+// 延迟应用 asciidoctor 插件
+if (!project.hasProperty('skipAsciidoctor') || project.skipAsciidoctor != 'true') {
+	apply plugin: 'org.asciidoctor.jvm.convert'
+}
+
+afterEvaluate {
+	if (!skipAsciidoctor) {
+		dependencies {
+			asciidoctorExtensions("io.spring.asciidoctor:spring-asciidoctor-extensions-spring-boot")
+			asciidoctorExtensions("io.spring.asciidoctor:spring-asciidoctor-extensions-section-ids")
+		}
+	} else {
+		tasks.matching { it.name.toLowerCase().contains('asciidoctor') }.all {
+			enabled = false
+			println "🔥 [spring-boot-docs] Disabled task: [${it.name}], [${it.path}]"
+		}
+	}
 }
 
 description = "Spring Boot Docs"
@@ -44,11 +63,19 @@ plugins.withType(EclipsePlugin) {
 dependencies {
 	actuatorApiDocumentation(project(path: ":spring-boot-project:spring-boot-actuator-autoconfigure", configuration: "documentation"))
 
-	asciidoctorExtensions("io.spring.asciidoctor:spring-asciidoctor-extensions-spring-boot")
-	asciidoctorExtensions("io.spring.asciidoctor:spring-asciidoctor-extensions-section-ids")
-	asciidoctorExtensions(project(path: ":spring-boot-project:spring-boot-actuator-autoconfigure"))
-	asciidoctorExtensions(project(path: ":spring-boot-project:spring-boot-autoconfigure"))
-	asciidoctorExtensions(project(path: ":spring-boot-project:spring-boot-devtools"))
+	if (!project.hasProperty('skipAsciidoctor') || project.skipAsciidoctor != 'true') {
+		asciidoctorExtensions("io.spring.asciidoctor:spring-asciidoctor-extensions-spring-boot")
+		asciidoctorExtensions("io.spring.asciidoctor:spring-asciidoctor-extensions-section-ids")
+		asciidoctorExtensions(project(path: ":spring-boot-project:spring-boot-actuator-autoconfigure"))
+		asciidoctorExtensions(project(path: ":spring-boot-project:spring-boot-autoconfigure"))
+		asciidoctorExtensions(project(path: ":spring-boot-project:spring-boot-devtools"))
+	}
+
+//	asciidoctorExtensions("io.spring.asciidoctor:spring-asciidoctor-extensions-spring-boot")
+//	asciidoctorExtensions("io.spring.asciidoctor:spring-asciidoctor-extensions-section-ids")
+//	asciidoctorExtensions(project(path: ":spring-boot-project:spring-boot-actuator-autoconfigure"))
+//	asciidoctorExtensions(project(path: ":spring-boot-project:spring-boot-autoconfigure"))
+//	asciidoctorExtensions(project(path: ":spring-boot-project:spring-boot-devtools"))
 
 	autoConfiguration(project(path: ":spring-boot-project:spring-boot-autoconfigure", configuration: "autoConfigurationMetadata"))
 	autoConfiguration(project(path: ":spring-boot-project:spring-boot-actuator-autoconfigure", configuration: "autoConfigurationMetadata"))
@@ -327,127 +354,233 @@ tasks.withType(org.asciidoctor.gradle.jvm.AbstractAsciidoctorTask) {
 	}
 }
 
-asciidoctor {
-	sources {
-		include "*.singleadoc"
+if (!skipAsciidoctor) {
+	asciidoctor {
+		sources {
+			include 'some.adoc'
+		}
+		// 其他配置...
+	}
+
+	task asciidoctorPdf(type: org.asciidoctor.gradle.jvm.AsciidoctorTask) {
+		sources {
+			include "*.singleadoc"
+		}
+	}
+
+	task asciidoctorMultipage(type: org.asciidoctor.gradle.jvm.AsciidoctorTask) {
+		sources {
+			include "*.adoc"
+		}
+	}
+
+	syncDocumentationSourceForAsciidoctor {
+		dependsOn documentTestSlices
+		dependsOn documentStarters
+		dependsOn documentAutoConfigurationClasses
+		dependsOn documentDependencyVersions
+		dependsOn documentVersionProperties
+		dependsOn documentConfigurationProperties
+		dependsOn documentDevtoolsPropertyDefaults
+		from("${buildDir}/docs/generated") {
+			into "asciidoc"
+		}
+		from("src/main/java") {
+			into "main/java"
+		}
+		from("src/test/java") {
+			into "test/java"
+		}
+		from("src/main/kotlin") {
+			into "main/kotlin"
+		}
+		from("src/main/groovy") {
+			into "main/groovy"
+		}
+		from("src/main/resources") {
+			into "main/resources"
+		}
+	}
+
+	syncDocumentationSourceForAsciidoctorMultipage {
+		dependsOn documentTestSlices
+		dependsOn documentStarters
+		dependsOn documentAutoConfigurationClasses
+		dependsOn documentDependencyVersions
+		dependsOn documentVersionProperties
+		dependsOn documentConfigurationProperties
+		dependsOn documentDevtoolsPropertyDefaults
+		from("${buildDir}/docs/generated") {
+			into "asciidoc"
+		}
+		from("src/main/java") {
+			into "main/java"
+		}
+		from("src/test/java") {
+			into "test/java"
+		}
+		from("src/main/kotlin") {
+			into "main/kotlin"
+		}
+		from("src/main/groovy") {
+			into "main/groovy"
+		}
+		from("src/main/resources") {
+			into "main/resources"
+		}
+	}
+
+	syncDocumentationSourceForAsciidoctorPdf {
+		dependsOn documentTestSlices
+		dependsOn documentStarters
+		dependsOn documentAutoConfigurationClasses
+		dependsOn documentDependencyVersions
+		dependsOn documentVersionProperties
+		dependsOn documentConfigurationProperties
+		dependsOn documentDevtoolsPropertyDefaults
+		from("${buildDir}/docs/generated") {
+			into "asciidoc"
+		}
+		from("src/main/java") {
+			into "main/java"
+		}
+		from("src/test/java") {
+			into "test/java"
+		}
+		from("src/main/kotlin") {
+			into "main/kotlin"
+		}
+		from("src/main/groovy") {
+			into "main/groovy"
+		}
+		from("src/main/resources") {
+			into "main/resources"
+		}
 	}
 }
 
-task asciidoctorPdf(type: org.asciidoctor.gradle.jvm.AsciidoctorTask) {
-	sources {
-		include "*.singleadoc"
-	}
-}
+//asciidoctor {
+//	sources {
+//		include "*.singleadoc"
+//	}
+//}
 
-task asciidoctorMultipage(type: org.asciidoctor.gradle.jvm.AsciidoctorTask) {
-	sources {
-		include "*.adoc"
-	}
-}
+//task asciidoctorPdf(type: org.asciidoctor.gradle.jvm.AsciidoctorTask) {
+//	sources {
+//		include "*.singleadoc"
+//	}
+//}
 
-syncDocumentationSourceForAsciidoctor {
-	dependsOn documentTestSlices
-	dependsOn documentStarters
-	dependsOn documentAutoConfigurationClasses
-	dependsOn documentDependencyVersions
-	dependsOn documentVersionProperties
-	dependsOn documentConfigurationProperties
-	dependsOn documentDevtoolsPropertyDefaults
-	from("${buildDir}/docs/generated") {
-		into "asciidoc"
-	}
-	from("src/main/java") {
-		into "main/java"
-	}
-	from("src/test/java") {
-		into "test/java"
-	}
-	from("src/main/kotlin") {
-		into "main/kotlin"
-	}
-	from("src/main/groovy") {
-		into "main/groovy"
-	}
-	from("src/main/resources") {
-		into "main/resources"
-	}
-}
+//task asciidoctorMultipage(type: org.asciidoctor.gradle.jvm.AsciidoctorTask) {
+//	sources {
+//		include "*.adoc"
+//	}
+//}
 
-syncDocumentationSourceForAsciidoctorMultipage {
-	dependsOn documentTestSlices
-	dependsOn documentStarters
-	dependsOn documentAutoConfigurationClasses
-	dependsOn documentDependencyVersions
-	dependsOn documentVersionProperties
-	dependsOn documentConfigurationProperties
-	dependsOn documentDevtoolsPropertyDefaults
-	from("${buildDir}/docs/generated") {
-		into "asciidoc"
-	}
-	from("src/main/java") {
-		into "main/java"
-	}
-	from("src/test/java") {
-		into "test/java"
-	}
-	from("src/main/kotlin") {
-		into "main/kotlin"
-	}
-	from("src/main/groovy") {
-		into "main/groovy"
-	}
-	from("src/main/resources") {
-		into "main/resources"
-	}
-}
+//syncDocumentationSourceForAsciidoctor {
+//	dependsOn documentTestSlices
+//	dependsOn documentStarters
+//	dependsOn documentAutoConfigurationClasses
+//	dependsOn documentDependencyVersions
+//	dependsOn documentVersionProperties
+//	dependsOn documentConfigurationProperties
+//	dependsOn documentDevtoolsPropertyDefaults
+//	from("${buildDir}/docs/generated") {
+//		into "asciidoc"
+//	}
+//	from("src/main/java") {
+//		into "main/java"
+//	}
+//	from("src/test/java") {
+//		into "test/java"
+//	}
+//	from("src/main/kotlin") {
+//		into "main/kotlin"
+//	}
+//	from("src/main/groovy") {
+//		into "main/groovy"
+//	}
+//	from("src/main/resources") {
+//		into "main/resources"
+//	}
+//}
+//
+//syncDocumentationSourceForAsciidoctorMultipage {
+//	dependsOn documentTestSlices
+//	dependsOn documentStarters
+//	dependsOn documentAutoConfigurationClasses
+//	dependsOn documentDependencyVersions
+//	dependsOn documentVersionProperties
+//	dependsOn documentConfigurationProperties
+//	dependsOn documentDevtoolsPropertyDefaults
+//	from("${buildDir}/docs/generated") {
+//		into "asciidoc"
+//	}
+//	from("src/main/java") {
+//		into "main/java"
+//	}
+//	from("src/test/java") {
+//		into "test/java"
+//	}
+//	from("src/main/kotlin") {
+//		into "main/kotlin"
+//	}
+//	from("src/main/groovy") {
+//		into "main/groovy"
+//	}
+//	from("src/main/resources") {
+//		into "main/resources"
+//	}
+//}
+//
+//syncDocumentationSourceForAsciidoctorPdf {
+//	dependsOn documentTestSlices
+//	dependsOn documentStarters
+//	dependsOn documentAutoConfigurationClasses
+//	dependsOn documentDependencyVersions
+//	dependsOn documentVersionProperties
+//	dependsOn documentConfigurationProperties
+//	dependsOn documentDevtoolsPropertyDefaults
+//	from("${buildDir}/docs/generated") {
+//		into "asciidoc"
+//	}
+//	from("src/main/java") {
+//		into "main/java"
+//	}
+//	from("src/test/java") {
+//		into "test/java"
+//	}
+//	from("src/main/kotlin") {
+//		into "main/kotlin"
+//	}
+//	from("src/main/groovy") {
+//		into "main/groovy"
+//	}
+//	from("src/main/resources") {
+//		into "main/resources"
+//	}
+//}
 
-syncDocumentationSourceForAsciidoctorPdf {
-	dependsOn documentTestSlices
-	dependsOn documentStarters
-	dependsOn documentAutoConfigurationClasses
-	dependsOn documentDependencyVersions
-	dependsOn documentVersionProperties
-	dependsOn documentConfigurationProperties
-	dependsOn documentDevtoolsPropertyDefaults
-	from("${buildDir}/docs/generated") {
-		into "asciidoc"
-	}
-	from("src/main/java") {
-		into "main/java"
-	}
-	from("src/test/java") {
-		into "test/java"
-	}
-	from("src/main/kotlin") {
-		into "main/kotlin"
-	}
-	from("src/main/groovy") {
-		into "main/groovy"
-	}
-	from("src/main/resources") {
-		into "main/resources"
-	}
-}
-
+//task zip(type: Zip) {
+//	dependsOn asciidoctor,
+//			asciidoctorMultipage,
+//			asciidoctorPdf,
 task zip(type: Zip) {
-	dependsOn asciidoctor,
-			asciidoctorMultipage,
-			asciidoctorPdf,
-			configurations.gradlePluginDocumentation,
+	dependsOn configurations.gradlePluginDocumentation,
 			configurations.actuatorApiDocumentation,
 			configurations.mavenPluginDocumentation
 	duplicatesStrategy "fail"
-	from(asciidoctor.outputDir) {
-		into "reference/htmlsingle"
-	}
-	from(asciidoctorPdf.outputDir) {
-		into "reference/pdf"
-		include "index.pdf"
-		rename { "spring-boot-reference.pdf" }
-	}
-	from(asciidoctorMultipage.outputDir) {
-		into "reference/html"
-	}
+//	from(asciidoctor.outputDir) {
+//		into "reference/htmlsingle"
+//	}
+//	from(asciidoctorPdf.outputDir) {
+//		into "reference/pdf"
+//		include "index.pdf"
+//		rename { "spring-boot-reference.pdf" }
+//	}
+//	from(asciidoctorMultipage.outputDir) {
+//		into "reference/html"
+//	}
 	from(aggregatedJavadoc) {
 		into "api"
 	}
@@ -477,5 +610,24 @@ publishing {
 		maven(MavenPublication) {
 			artifact zip
 		}
+	}
+}
+
+if (project.hasProperty('skipAsciidoctor') && project.skipAsciidoctor == 'true') {
+	tasks.matching { it.name.toLowerCase().contains('asciidoctor') }.all {
+		enabled = false
+		println "🔥 [spring-boot-docs] Disabled task: [${it.name}], [${it.path}]"
+	}
+	tasks.matching { it.name == 'aggregatedJavadoc' }.configureEach {
+		enabled = false
+		println "🔥 [spring-boot-docs] Disabled task: [${it.name}], [${it.path}]"
+	}
+	tasks.matching { it.name == 'publishMavenPublicationToProjectRepository' }.configureEach {
+		enabled = false
+		println "🔥 [spring-boot-docs] Disabled task: [${it.name}], [${it.path}]"
+	}
+	tasks.named('zip') {
+		enabled = false
+		println "🔥 [spring-boot-docs] Disabled task: [${it.name}], [${it.path}]"
 	}
 }

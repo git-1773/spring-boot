@@ -138,3 +138,11 @@ artifacts {
 toolchain {
 	maximumCompatibleJavaVersion = JavaLanguageVersion.of(18)
 }
+
+if (project.hasProperty('skipAsciidoctor') && project.skipAsciidoctor == 'true') {
+	tasks.matching { it.name.toLowerCase().contains('asciidoctor') }.all {
+		enabled = false
+		println "🔥 [gradle-plugin] Skipping task: [${it.name}] [${it.path}]"
+	}
+}
+
